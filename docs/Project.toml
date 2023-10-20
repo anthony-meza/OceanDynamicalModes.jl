@@ -1,0 +1,3 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+OceanDynamicalModes = "aa8f1f02-956a-4b02-bbda-bd8f5d8ddbac"
