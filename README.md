@@ -8,6 +8,8 @@
 This code solves the generalized eigenvalue problem of the form 
 $$\\frac{\\partial^2}{\\partial z^2} w_m + \\alpha^2 N^2 w_m = 0$$
 where $w_m = 0$ at the surface and the bottom
-Code could be loosely based on this Python Code: 
+
+
+Code is based on this Python Code: 
 
 https://gist.github.com/douglatornell/5479638
