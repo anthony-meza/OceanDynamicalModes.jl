@@ -87,7 +87,6 @@ and sorts them for subsequent analysis. It returns a cleaned subset of eigenvalu
 - `eigenvalues`: A 1D array of cleaned and sorted eigenvalues.
 - `wmodes`: A 2D array of corresponding modes.
 """
-
 function clean_up_modes(eigenvalues, wmodes, nmodes)
     # Transpose modes to be handled as an array of vectors
     wmodes = transpose(wmodes)
