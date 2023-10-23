@@ -1,1 +1,23 @@
 using OceanDynamicalModes
+using PyPlot
+
+
+dz = 0.05
+depth = collect(0 + dz:dz:1. - 0.05)
+Nsq = ones(length(depth))
+nmodes = 3
+wmodes, pmodes, ce = dynmodes(Nsq, depth, dz, nmodes)
+print(ce)
+
+#compare to analytical solution
+c = 1 / pi
+analytical = ((c, c / 2, c / 3))
+print(analytical)
+
+#plot the modes
+fig, ax = plt.subplots()
+for i = 1:3
+    ax.plot(wmodes[i, :], -depth)
+end
+fig
+
