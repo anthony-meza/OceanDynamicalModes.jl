@@ -1,5 +1,6 @@
+module OceanDynamicalModes
 using LinearAlgebra
-
+export build_delsq_matrix, dynmodes, clean_up_modes
 """
     build_delsq_matrix(depth, dz)
 
@@ -109,4 +110,6 @@ function clean_up_modes(eigenvalues, wmodes, nmodes)
     
     # Step 4: Return the cleaned-up eigenvalues and modes
     return eigenvalues, wmodes
+end
+
 end

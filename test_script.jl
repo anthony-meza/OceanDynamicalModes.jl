@@ -17,7 +17,8 @@ print(analytical)
 #plot the modes
 fig, ax = plt.subplots()
 for i = 1:3
-    ax.plot(wmodes[i, :], -depth)
+    ax.plot(wmodes[i, :], -depth, label = "Mode " * string(i))
 end
+ax.legend()
 fig
 
