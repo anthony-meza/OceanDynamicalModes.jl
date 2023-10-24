@@ -23,12 +23,19 @@ using Pluto, PlutoUI
 # ╔═╡ 22255253-1b42-4a79-a56e-4844dddf9656
 using OceanDynamicalModes; using PythonPlot
 
+# ╔═╡ 1f0a2ea8-327f-416e-bab2-bfd62c0aa7ac
+vertical_structure = @bind vstructure Select(["uniform","exponential"])
+
+# ╔═╡ d7e3e970-d28f-4cc9-a8f0-061df796e0fd
+dz = 0.05; depth = collect(0 + dz:dz:1. - 0.05)
+	
+
+# ╔═╡ 38ef889a-a5e9-4b87-b70d-fa1801d1bc9e
+vstructure == "uniform" ? Nsq = ones(length(depth)) : println("not implemented")
+
 # ╔═╡ a0bdb328-d2dc-42d3-b79c-7bd8016bbeab
 begin
 
-	dz = 0.05
-	depth = collect(0 + dz:dz:1. - 0.05)
-	Nsq = ones(length(depth))
 	nmodes = 3
 	wmodes, pmodes, ce = dynmodes(Nsq, depth, dz, nmodes)
 	ones(19, 3) .* ce'
@@ -75,6 +82,9 @@ println(a)
 # ╠═8599b2b6-729c-11ee-0253-f34553e62bfa
 # ╠═3c2a77e6-ffde-40a5-b4a6-dd44a9088954
 # ╠═22255253-1b42-4a79-a56e-4844dddf9656
+# ╠═1f0a2ea8-327f-416e-bab2-bfd62c0aa7ac
+# ╠═d7e3e970-d28f-4cc9-a8f0-061df796e0fd
+# ╠═38ef889a-a5e9-4b87-b70d-fa1801d1bc9e
 # ╠═a0bdb328-d2dc-42d3-b79c-7bd8016bbeab
 # ╠═5362e727-8708-4797-9409-858d3ee9e757
 # ╠═d49994ca-e3d7-4820-9698-acd7b232fb94
