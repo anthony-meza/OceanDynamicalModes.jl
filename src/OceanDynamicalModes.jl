@@ -21,9 +21,9 @@ in one dimension for a specific depth and spacing.
 function build_delsq_matrix(depth, dz::Real)
     zed = -depth
     nz = length(zed)    
-    d = -2/(dz^2) .* ones(nz)
-    dl = 1/(dz^2) .* ones(nz-1)
-    du = 1/(dz^2) .* ones(nz-1)
+    d = -2/(dz^2) .* ones(nz) #on diagonal 
+    dl = 1/(dz^2) .* ones(nz-1) #lower diagonal 
+    du = 1/(dz^2) .* ones(nz-1) #upper diagonal
     delsq = Tridiagonal(dl, d, du)
     return delsq, nz, dz
 end
@@ -60,11 +60,11 @@ function dynmodes(Nsq, depth, dz, nmodes, rho0=1028)
     ce = 1.0 ./ sqrt.(real.(eigenvalues))
 
     # Horizontal velocity modes (NOT COMPUTED YET)
-    pmodes = similar(wmodes)
+    # pmodes = similar(wmodes)
     # 1st derivative of vertical modes
-    # pr = diff(wmodes, dims=2) .* rho0 .* (ce .^ 2) .* dz'
+    pr = diff(wmodes, dims=1) .* rho0 .* (ce .^ 2)' .* dz
     # Linear interpolation on depth grid
-    # pmodes[:, 2:nz] .= (pr[:, 2:nz] + pr[:, 1:nz-1]) / 2
+    pmodes = pr
     # pmodes[:, 1] .= pr[:, 1]
     # pmodes[:, nz] .= pr[:, nz-1]
     return wmodes, pmodes, ce
@@ -75,8 +75,8 @@ end
 
 Clean and process eigenvalues and associated modes for further analysis.
 
-This function takes eigenvalues and their associated modes, applies several filters,
-and sorts them for subsequent analysis. It returns a cleaned subset of eigenvalues and modes.
+This function takes eigenvalues and their associated modes and 
+    returns a cleaned subset of eigenvalues and modes.
 
 # Arguments
 - `eigenvalues`: A 1D array of eigenvalues.
@@ -85,30 +85,24 @@ and sorts them for subsequent analysis. It returns a cleaned subset of eigenvalu
 
 # Returns
 - `eigenvalues`: A 1D array of cleaned and sorted eigenvalues.
-- `wmodes`: A 2D array of corresponding modes.
+- `wmodes`: A 2D array where columns are vertical modes 
 """
 function clean_up_modes(eigenvalues, wmodes, nmodes)
     # Transpose modes to be handled as an array of vectors
-    wmodes = transpose(wmodes)
     
     # Step 1: Filter out complex-valued eigenvalues
     # Check if the imaginary part of eigenvalues is zero
     mask = imag.(eigenvalues) .== 0
     eigenvalues = eigenvalues[mask]  # Keep only real eigenvalues
-    wmodes = wmodes[mask, :]  # Corresponding modes
+    wmodes = wmodes[:, mask]  # Corresponding modes
     
     # Step 2: Filter out small/negative eigenvalues
     mask = eigenvalues .>= 1e-10  # Select eigenvalues >= 1e-10
     eigenvalues = eigenvalues[mask]
-    wmodes = wmodes[mask, :]
-    
-    # Step 3: Sort eigenvalues and modes and truncate to the number of modes requested
-    index = sortperm(eigenvalues)  # Get the indices for sorting eigenvalues
-    eigenvalues = eigenvalues[index[1:nmodes]]  # Sort and keep top nmodes eigenvalues
-    wmodes = wmodes[index[1:nmodes], :]  # Sort modes accordingly, each mode corresponds to a particular row
+    wmodes = wmodes[:, mask]
     
     # Step 4: Return the cleaned-up eigenvalues and modes
-    return eigenvalues, wmodes
+    return eigenvalues[1:nmodes], wmodes[:, 1:nmodes]
 end
 
 end
