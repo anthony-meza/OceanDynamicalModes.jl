@@ -30,8 +30,11 @@ vertical_structure = @bind vstructure Select(["uniform","exponential"])
 dz = 0.05; depth = collect(0 + dz:dz:1. - 0.05)
 	
 
+# ╔═╡ ebfa3bf8-2198-4026-8cd3-3719373c86fa
+a_slider = @bind a Slider(0:100,show_value=true,default=10)
+
 # ╔═╡ 38ef889a-a5e9-4b87-b70d-fa1801d1bc9e
-vstructure == "uniform" ? Nsq = ones(length(depth)) : println("not implemented")
+vstructure == "uniform" ? Nsq = ones(length(depth)) : (vstructure == "exponential" ? Nsq = exp.(-a*depth) :  println("not implemented"))
 
 # ╔═╡ a0bdb328-d2dc-42d3-b79c-7bd8016bbeab
 begin
@@ -71,9 +74,6 @@ fig
 	end
 	
 end
-
-# ╔═╡ ebfa3bf8-2198-4026-8cd3-3719373c86fa
-a_slider = @bind a Slider(0:.1:100,show_value=true,default=10)
 
 # ╔═╡ ebd5180b-a343-4fed-8bc1-6e05cdc2d64d
 println(a)
