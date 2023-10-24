@@ -5,6 +5,7 @@ version = "1.0.0-DEV"
 
 [deps]
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+PythonPlot = "274fc56d-3b97-40fa-a1cd-1b4a50311bf9"
 
 [compat]
 julia = "1.8"

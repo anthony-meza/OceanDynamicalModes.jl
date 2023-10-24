@@ -1,5 +1,5 @@
 using OceanDynamicalModes
-using PyPlot
+using PythonPlot
 
 
 dz = 0.05
@@ -16,7 +16,7 @@ analytical = ((c, c / 2, c / 3))
 print(analytical)
 
 #plot the modes
-fig, ax = plt.subplots()
+fig, ax = subplots()
 for i = 1:3
     ax.plot(wmodes[:, i], -depth, label = "Mode " * string(i))
 end
@@ -25,11 +25,9 @@ fig
 
 
 #plot the modes
-fig, ax = plt.subplots()
+fig, ax = subplots()
 for i = 1:3
     ax.plot(pmodes[:, i], -(depth[2:end] .+ depth[1:end-1]) ./ 2, label = "Mode " * string(i))
 end
 ax.legend()
 fig
-
-
