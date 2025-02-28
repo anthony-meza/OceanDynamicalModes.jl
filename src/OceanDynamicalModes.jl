@@ -1,6 +1,7 @@
 module OceanDynamicalModes
 using LinearAlgebra
 export build_delsq_matrix, dynmodes, clean_up_modes
+export build_delsq_matrix_LLC90
 """
     build_delsq_matrix(depth, dz)
 
@@ -26,6 +27,37 @@ function build_delsq_matrix(depth, dz::Real)
     du = 1/(dz^2) .* ones(nz-1) #upper diagonal
     delsq = Tridiagonal(dl, d, du)
     return delsq, nz, dz
+end
+
+function build_delsq_matrix_zdbc(depth, dz::Real, dz1::Real, dzend::Real)
+    zed = -depth
+    nz = length(zed)    
+    dRC = dz .* ones(nz + 1)
+    dRC[1] = 
+    #assumes that you want to use information at the boundary
+
+    d = -2 * inv.(dRC[1:end-1] .* dRC[2:end])
+    dl = 2 * inv.(dRC[2:end-1] .* (dRC[2:end-1] .+ dRC[3:end]))
+    du = 2 * inv.(dRC[2:end-1] .* (dRC[2:end-1] .+ dRC[1:end-2]))
+
+    delsq = Tridiagonal(dl, d, du)
+    return delsq, dRC
+end
+"""
+Buidling second derivative operator on an unstructured grid (LLC90)
+"""
+function build_delsq_matrix_LLC90(Γ::NamedTuple)
+    dRF = abs.(Γ.DRF) #includes an upper ghost point
+    dRC = abs.(Γ.DRC);
+    #assume that points are spaced equally far away 
+    dRC = vcat(dRC, dRC[end] / 2)
+    
+    d = -2 * (inv.(dRC[1:end-1] .* dRC[2:end]))
+    dl = 2 * inv.(dRC[2:end-1] .* (dRC[2:end-1] .+ dRC[3:end]))
+    du = 2 * inv.(dRC[2:end-1] .* (dRC[2:end-1] .+ dRC[1:end-2]))
+
+    delSq = Matrix(Tridiagonal(dl, d, du))
+    return delSq
 end
 
 """
@@ -68,6 +100,18 @@ function dynmodes(Nsq, depth, dz, nmodes, rho0=1028)
     # pmodes[:, 1] .= pr[:, 1]
     # pmodes[:, nz] .= pr[:, nz-1]
     return wmodes, pmodes, ce
+end
+
+function dynmodes(delsq, Nsq_mat; nmodes = nothing)
+    eigenvalues, wmodes = eigen(Array(delsq), -Nsq_mat)
+    # Modal speeds
+    ce = 1.0 ./ sqrt.(real.(eigenvalues))
+
+    if ~isnothing(nmodes)
+        return wmodes[:, 1:nmodes], ce[1:nmodes]
+    else
+        return wmodes, ce
+    end
 end
 
 """
