@@ -1,58 +1,31 @@
 module OceanDynamicalModes
 using LinearAlgebra
-export build_delsq_matrix, dynmodes, clean_up_modes
-export build_delsq_matrix_LLC90
-"""
-    build_delsq_matrix(depth, dz)
+export build_delsq_matrix
 
-Construct a discretized Laplacian matrix for a given depth and spacing.
+function build_delsq_matrix(depth::Vector)
+	dRC = vcat(0, abs.(depth))
+	dRC = dRC[2:end] - dRC[1:end-1]
+	dRC = abs.(vcat(dRC, dRC[end] / 2))
 
-This function generates a tridiagonal matrix representing the Laplacian operator
-in one dimension for a specific depth and spacing.
-
-# Arguments
-- `depth`: The depth of the domain.
-- `dz`: The spacing between grid points.
-
-# Returns
-- `delsq`: A tridiagonal matrix representing the second derivative operator.
-- `nz`: The number of grid points.
-- `dz`: The grid spacing.
-"""
-function build_delsq_matrix(depth, dz::Real)
-    zed = -depth
-    nz = length(zed)    
-    d = -2/(dz^2) .* ones(nz) #on diagonal 
-    dl = 1/(dz^2) .* ones(nz-1) #lower diagonal 
-    du = 1/(dz^2) .* ones(nz-1) #upper diagonal
-    delsq = Tridiagonal(dl, d, du)
-    return delsq, nz, dz
-end
-
-function build_delsq_matrix_zdbc(depth, dz::Real, dz1::Real, dzend::Real)
-    zed = -depth
-    nz = length(zed)    
-    dRC = dz .* ones(nz + 1)
-    dRC[1] = 
-    #assumes that you want to use information at the boundary
 
     d = -2 * inv.(dRC[1:end-1] .* dRC[2:end])
     dl = 2 * inv.(dRC[2:end-1] .* (dRC[2:end-1] .+ dRC[3:end]))
     du = 2 * inv.(dRC[2:end-1] .* (dRC[2:end-1] .+ dRC[1:end-2]))
 
-    delsq = Tridiagonal(dl, d, du)
-    return delsq, dRC
+    delsq = Matrix(Tridiagonal(dl, d, du))
+    return delsq
 end
+
 """
 Buidling second derivative operator on an unstructured grid (LLC90)
 """
-function build_delsq_matrix_LLC90(Γ::NamedTuple)
-    dRF = abs.(Γ.DRF) #includes an upper ghost point
+function build_delsq_matrix(Γ::NamedTuple)
+    # dRF = abs.(Γ.DRF) #includes an upper ghost point
     dRC = abs.(Γ.DRC);
     #assume that points are spaced equally far away 
     dRC = vcat(dRC, dRC[end] / 2)
     
-    d = -2 * (inv.(dRC[1:end-1] .* dRC[2:end]))
+    d = -2 * inv.(dRC[1:end-1] .* dRC[2:end])
     dl = 2 * inv.(dRC[2:end-1] .* (dRC[2:end-1] .+ dRC[3:end]))
     du = 2 * inv.(dRC[2:end-1] .* (dRC[2:end-1] .+ dRC[1:end-2]))
 
@@ -80,30 +53,13 @@ and modal phase speeds (ce) based on a given buoyancy frequency profile (Nsq), d
 - `pmodes`: Horizontal velocity modes.
 - `ce`: Modal phase speeds.
 """
-function dynmodes(Nsq, depth, dz, nmodes, rho0=1028)
-    # Del-squared matrix plus boundary conditions
-    delsq, nz, dz = build_delsq_matrix(depth, dz)
-    # N-squared diagonal matrix
-    Nsq_mat = diagm(Nsq)
-    # Solve generalized eigenvalue problem for eigenvalues and vertical velocity modes
-    eigenvalues, wmodes = eigen(Array(delsq), -Nsq_mat)
-    eigenvalues, wmodes = clean_up_modes(eigenvalues, wmodes, nmodes)
-    # Modal speeds
-    ce = 1.0 ./ sqrt.(real.(eigenvalues))
-
-    # Horizontal velocity modes (NOT COMPUTED YET)
-    # pmodes = similar(wmodes)
-    # 1st derivative of vertical modes
-    pr = diff(wmodes, dims=1) .* rho0 .* (ce .^ 2)' .* dz
-    # Linear interpolation on depth grid
-    pmodes = pr
-    # pmodes[:, 1] .= pr[:, 1]
-    # pmodes[:, nz] .= pr[:, nz-1]
-    return wmodes, pmodes, ce
-end
-
 function dynmodes(delsq, Nsq_mat; nmodes = nothing)
     eigenvalues, wmodes = eigen(Array(delsq), -Nsq_mat)
+    eigenvalues = real.(eigenvalues)
+
+    wmodes = wmodes .* sign.(eigenvalues)
+    eigenvalues = eigenvalues .* sign.(eigenvalues)
+
     # Modal speeds
     ce = 1.0 ./ sqrt.(real.(eigenvalues))
 
@@ -112,41 +68,6 @@ function dynmodes(delsq, Nsq_mat; nmodes = nothing)
     else
         return wmodes, ce
     end
-end
-
-"""
-    clean_up_modes(eigenvalues, wmodes, nmodes)
-
-Clean and process eigenvalues and associated modes for further analysis.
-
-This function takes eigenvalues and their associated modes and 
-    returns a cleaned subset of eigenvalues and modes.
-
-# Arguments
-- `eigenvalues`: A 1D array of eigenvalues.
-- `wmodes`: A 2D array where each column represents a mode.
-- `nmodes`: The number of modes to keep.
-
-# Returns
-- `eigenvalues`: A 1D array of cleaned and sorted eigenvalues.
-- `wmodes`: A 2D array where columns are vertical modes 
-"""
-function clean_up_modes(eigenvalues, wmodes, nmodes)
-    # Transpose modes to be handled as an array of vectors
-    
-    # Step 1: Filter out complex-valued eigenvalues
-    # Check if the imaginary part of eigenvalues is zero
-    mask = imag.(eigenvalues) .== 0
-    eigenvalues = eigenvalues[mask]  # Keep only real eigenvalues
-    wmodes = wmodes[:, mask]  # Corresponding modes
-    
-    # Step 2: Filter out small/negative eigenvalues
-    mask = eigenvalues .>= 1e-10  # Select eigenvalues >= 1e-10
-    eigenvalues = eigenvalues[mask]
-    wmodes = wmodes[:, mask]
-    
-    # Step 4: Return the cleaned-up eigenvalues and modes
-    return eigenvalues[1:nmodes], wmodes[:, 1:nmodes]
 end
 
 end
