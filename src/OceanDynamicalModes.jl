@@ -1,5 +1,5 @@
 module OceanDynamicalModes
-using LinearAlgebra
+using LinearAlgebra, MeshArrays
 export build_delsq_matrix
 
 function build_delsq_matrix(depth::Vector)
