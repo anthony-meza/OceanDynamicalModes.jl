@@ -1,6 +1,6 @@
 module OceanDynamicalModes
 using LinearAlgebra, MeshArrays
-export build_delsq_matrix
+export build_delsq_matrix, dynmodes
 
 function build_delsq_matrix(depth::Vector)
 	dRC = vcat(0, abs.(depth))
