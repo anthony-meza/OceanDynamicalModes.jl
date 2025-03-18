@@ -17,7 +17,7 @@ function build_delsq_matrix(depth::Vector)
 end
 
 """
-Buidling second derivative operator on an unstructured grid (LLC90)
+Building second derivative operator on the LLC90 vertical grid
 """
 function build_delsq_matrix(Γ::NamedTuple)
     # dRF = abs.(Γ.DRF) #includes an upper ghost point
