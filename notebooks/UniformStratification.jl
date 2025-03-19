@@ -16,24 +16,22 @@ macro bind(def, element)
     #! format: on
 end
 
-# ╔═╡ c90f0c9e-f5e2-11ef-3763-a79a1560ab8a
+# ╔═╡ 1433b08e-04d6-11f0-09e0-3b3682723ce9
 begin 
 	import Pkg
 	Pkg.activate("../")
 	Pkg.instantiate()
 end
 
-# ╔═╡ 42151ed2-fa30-4f63-b404-bbe19c488a27
+# ╔═╡ b3a26491-f02d-4d01-a2e0-b837cc89fdef
 begin
 	using OceanDynamicalModes
 	using LinearAlgebra
 	using MeshArrays, PlutoUI
 	using Statistics, Plots, StatsPlots
-
-	uniform_N²(z, N²) = N² .* ones(length(z))
 end
 
-# ╔═╡ f98e3fe0-db65-47f5-b4cb-2a4f51dddc4e
+# ╔═╡ 522b5767-c6dc-42d0-b6d3-f6f0bcf517b7
 md"""
 Finding internal modes is equivalen to solving the following eigenvalue problem: 
 
@@ -52,7 +50,7 @@ $$\begin{align} w_n(z) &\sim sin(\frac{n \pi}{H} z) \\  c_n &= \frac{N_0 H}{n \p
 **Below, we solve for these modes using a uniformly spaces vertical grid and the ECCO V4r4 vertical grid. We compare our results to what is expected from the analytical solution.**
 """
 
-# ╔═╡ 7f6a0978-2071-47dd-8843-cadf02746d80
+# ╔═╡ 292fb8ed-cbba-4d12-8468-7850848380f1
 begin 
     function sol_parameters()
         return PlutoUI.combine() do Child
@@ -63,7 +61,7 @@ begin
             N2_selector = Child("N2", Select(N2_values, default=1e-6))
             
             # For the grid spacing, using a regular slider
-            dz_slider = Child("dz", Slider(15:25:500, default=50, show_value=true))
+            dz_slider = Child("dz", Slider(15.:25.:500., default=50., show_value=true))
             
             # For the number of modes, using a slider
             nmodes_slider = Child("nmodes", Slider(1:1:6, default=2, show_value=true))
@@ -86,55 +84,43 @@ begin
     @bind strat_params sol_parameters()
 end
 
-# ╔═╡ 15f13433-dcd5-4a21-a916-abb84913fa3a
+# ╔═╡ d39d0089-062d-47b5-bf46-6aa483494f2e
 begin 
-	#setup ECCO grid and stratification
-	pth = MeshArrays.GRID_LLC90
-	γ = GridSpec("LatLonCap",pth); Γ = GridLoad(γ;option="full");
-	delSq_ECCO = build_delsq_matrix(Γ)
-	depths_ECCO = -Γ.RC;
-	H = -Γ.RF[end]
 	N² = strat_params.N2
-	N²_ECCO = diagm(uniform_N²(depths_ECCO, N²))
+	nmodes = strat_params.nmodes
+	dz_uniform = strat_params.dz;
+	
+	grid_ECCO = generate_ECCO_vertical_grid(N²)
+	H = grid_ECCO.H
 
 	#setup uniform grid and stratification for comparison
-	dz_uniform = strat_params.dz; 
-	depths_uniform = collect(0 + dz_uniform:dz_uniform:H-dz_uniform)
-	N²_uniform = diagm(uniform_N²(depths_uniform, N²))
-    delSq_uniform = build_delsq_matrix(depths_uniform);
-	nothing #done, trick to stop things from printing 
+	depths_uniform = -collect(0 + dz_uniform:dz_uniform:H-dz_uniform)
+	grid_uniform = Grid(N², depths_uniform, dz_uniform, H)
 	
-end
-
-# ╔═╡ cc490191-fc40-46d9-bedb-1241a04ecd3a
-begin 
-	nmodes = strat_params.nmodes
 	#calculate vertical modes on a uniform grid and ECCO V4r4 vertical gri
-	analytical_modes(z, n, H) = @. sin(n * π * z / H)
+	ECCO_modes = compute_dynamical_modes(grid_ECCO; nmodes = nmodes)	
+	uniform_modes = compute_dynamical_modes(grid_uniform; nmodes = nmodes)	
 	
-	wmodes_ECCO, ce_ECCO = dynmodes(delSq_ECCO, N²_ECCO; nmodes = nmodes)
-	
-	wmodes_uni, ce = dynmodes(delSq_uniform, N²_uniform; nmodes = nmodes);
-
 	#calculate analytical modes
-	depth_analy = collect(0:1:H)
+	analytical_modes(z, n, H) = @. sin(n * π * z / H)
+	depth_analy = -collect(0:1:H)
 	wmodes_analy = analytical_modes(depth_analy, collect(1:nmodes)', H);
 	nothing #trick to stop things from printing
 end
 
-# ╔═╡ 16ae82b0-f6d4-499c-b07e-44cc1d9e1f23
+# ╔═╡ b2d7ae53-99e7-4010-b5bb-ec11e5d04271
 begin 
 
 	titles = ["ECCO V4r4 Grid", "Uniform Grid (Δz = $dz_uniform)", "Analytical Solution"]
-	data = [wmodes_ECCO, wmodes_uni, wmodes_analy]
-	depths = [depths_ECCO, depths_uniform, depth_analy]
+	data = [ECCO_modes.w, uniform_modes.w, wmodes_analy]
+	depths = [ECCO_modes.grid.z, uniform_modes.grid.z, depth_analy]
 	
 	p = plot(layout=(1,3), size=(700, 500), 
 	    link=:both,   plot_titlevspan=0.05, 
 		plot_title="Vertical Modes and Speeds Comparison (N₀² = $N²)")
 	for i in 1:3, j in 1:nmodes
 	        plot!(p[i], data[i][:, j], 
-	            -depths[i], label="Mode $j", linewidth=2.5)
+	            depths[i], label="Mode $j", linewidth=2.5)
 	    plot!(p[i], title=titles[i])
 	    if i == 1
 	        plot!(p[i], ylabel="Depth [meters]")
@@ -150,7 +136,7 @@ begin
     # Create grouped bar chart
     p1 = groupedbar(
         mode_labels, 
-        [ce_analytical ce_ECCO ce],
+        [ce_analytical ECCO_modes.c uniform_modes.c],
         bar_position = :dodge,
         bar_width = 0.7,
         # title = "Wave Speed Comparison by Mode",
@@ -171,15 +157,10 @@ begin
     )
 end
 
-# ╔═╡ bbc3256c-9ffb-4aad-b4b2-6ad282ee90a2
-
-
 # ╔═╡ Cell order:
-# ╠═c90f0c9e-f5e2-11ef-3763-a79a1560ab8a
-# ╠═42151ed2-fa30-4f63-b404-bbe19c488a27
-# ╠═15f13433-dcd5-4a21-a916-abb84913fa3a
-# ╟─f98e3fe0-db65-47f5-b4cb-2a4f51dddc4e
-# ╟─7f6a0978-2071-47dd-8843-cadf02746d80
-# ╠═cc490191-fc40-46d9-bedb-1241a04ecd3a
-# ╠═16ae82b0-f6d4-499c-b07e-44cc1d9e1f23
-# ╠═bbc3256c-9ffb-4aad-b4b2-6ad282ee90a2
+# ╠═1433b08e-04d6-11f0-09e0-3b3682723ce9
+# ╠═b3a26491-f02d-4d01-a2e0-b837cc89fdef
+# ╟─522b5767-c6dc-42d0-b6d3-f6f0bcf517b7
+# ╟─292fb8ed-cbba-4d12-8468-7850848380f1
+# ╠═d39d0089-062d-47b5-bf46-6aa483494f2e
+# ╠═b2d7ae53-99e7-4010-b5bb-ec11e5d04271
